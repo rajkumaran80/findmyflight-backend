@@ -11,6 +11,10 @@ export class CacheService {
   private isConnected = false;
 
   constructor() {
+    if (process.env.CACHE_ENABLED === 'false') {
+      console.log('Cache disabled via CACHE_ENABLED=false');
+      return;
+    }
     this.initializeRedis();
   }
 
