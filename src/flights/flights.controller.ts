@@ -26,6 +26,11 @@ export class FlightSearchController {
       departDate: searchDto.departDate,
       returnDate: searchDto.returnDate,
       passengers: searchDto.passengers,
+      passengerBreakdown: searchDto.adults ? {
+        adults: searchDto.adults,
+        children: searchDto.children || 0,
+        infants: searchDto.infants || 0,
+      } : undefined,
       tripType: searchDto.tripType,
       cabin: searchDto.cabin,
       maxPrice: searchDto.maxPrice,

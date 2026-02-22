@@ -22,6 +22,24 @@ export class FlightSearchDto {
   @Max(9)
   passengers: number = 1;
 
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(9)
+  adults?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(8)
+  children?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  infants?: number;
+
   @IsEnum(['one-way', 'round-trip', 'multi-city'])
   tripType: 'one-way' | 'round-trip' | 'multi-city' = 'one-way';
 

@@ -20,6 +20,7 @@ async function bootstrap() {
   // Enable CORS for frontend
   const allowedOrigins = [
     'http://localhost:3000',
+    'https://travellyhub.com',
     'https://findmyflight-frontend-prod-fna8gxa2f5hqbch4.uksouth-01.azurewebsites.net',
   ];
   if (process.env.FRONTEND_URL) {

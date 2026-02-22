@@ -25,9 +25,34 @@ export interface NormalizedFlight {
   departureDate: string; // YYYY-MM-DD
   returnDate?: string; // YYYY-MM-DD for round-trip
   
+  // Detailed itinerary (outbound + inbound for round-trip)
+  itineraries?: FlightItinerary[];
+
   // Score for ranking
   rankingScore?: number;
   scoreBreakdown?: ScoreBreakdown;
+}
+
+export interface FlightSegmentDetail {
+  departureAirport: string;
+  departureTerminal?: string;
+  departureTime: string;
+  arrivalAirport: string;
+  arrivalTerminal?: string;
+  arrivalTime: string;
+  carrierCode: string;
+  carrierName?: string;
+  flightNumber: string;
+  aircraft?: string;
+  duration: number;
+  cabin?: string;
+}
+
+export interface FlightItinerary {
+  direction: 'outbound' | 'inbound';
+  duration: number;
+  segments: FlightSegmentDetail[];
+  stops: number;
 }
 
 export interface StopDetail {
@@ -46,9 +71,9 @@ export interface ScoreBreakdown {
  * Passenger breakdown for searches
  */
 export interface PassengerBreakdown {
-  adults: number; // 18+
-  children: number; // 2-17 (Kids)
-  infants: number; // 0-2 (Infants)
+  adults: number; // 12+ (Amadeus ADT)
+  children: number; // 2-11 (Amadeus CHD)
+  infants: number; // Under 2 (Amadeus INF, on lap)
 }
 
 /**

@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { BaseFlightProvider } from './base.provider';
-import { FlightSearchParams, NormalizedFlight } from '../common/types';
+import { FlightSearchParams, NormalizedFlight, FlightItinerary, FlightSegmentDetail } from '../common/types';
 
 /**
  * Kiwi.com API Provider Implementation
@@ -69,7 +69,9 @@ export class KiwiProvider extends BaseFlightProvider {
       fly_to: params.to,
       date_from: params.departDate,
       date_to: params.departDate, // Kiwi requires date range
-      adults: params.passengers,
+      adults: params.passengerBreakdown?.adults || (params.passengers || 1),
+      children: params.passengerBreakdown?.children || 0,
+      infants: params.passengerBreakdown?.infants || 0,
       limit: 50,
       sort: 'price', // Sort by price
       asc: 1, // Ascending order (cheapest first)
@@ -114,6 +116,23 @@ export class KiwiProvider extends BaseFlightProvider {
     // Deep link for booking (this is Kiwi's native booking)
     const bookingUrl = `https://www.kiwi.com/us/search/results/${params.from}/${params.to}/${params.departDate}${params.returnDate ? '/' + params.returnDate : ''}?passengers=${params.passengers}&affiliateId=${process.env.KIWI_AFFILIATE_ID || 'findmyflight'}&flightId=${rawFlight.id}`;
 
+    // Build itineraries from Kiwi route segments
+    const itineraries: FlightItinerary[] = [{
+      direction: 'outbound',
+      duration,
+      stops,
+      segments: routes.map((route: any) => ({
+        departureAirport: route.flyFrom,
+        departureTime: new Date(route.local_departure * 1000).toISOString(),
+        arrivalAirport: route.flyTo,
+        arrivalTime: new Date(route.local_arrival * 1000).toISOString(),
+        carrierCode: route.airline,
+        carrierName: this.getAirlineName(route.airline),
+        flightNumber: `${route.airline}${route.flight_no}`,
+        duration: Math.round((route.local_arrival - route.local_departure) / 60),
+      })),
+    }];
+
     return {
       id: `kiwi_${rawFlight.id}`,
       provider: this.name,
@@ -124,6 +143,7 @@ export class KiwiProvider extends BaseFlightProvider {
       duration: duration,
       stops: stops,
       stopDetails: this.buildStopDetails(routes),
+      itineraries,
       price: rawFlight.price,
       currency: rawFlight.currency || 'USD',
       bookingUrl: bookingUrl,

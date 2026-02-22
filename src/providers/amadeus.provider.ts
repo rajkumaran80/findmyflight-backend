@@ -1,6 +1,6 @@
 import axios, { Axios } from 'axios';
 import { BaseFlightProvider } from './base.provider';
-import { FlightSearchParams, NormalizedFlight } from '../common/types';
+import { FlightSearchParams, NormalizedFlight, FlightItinerary, FlightSegmentDetail } from '../common/types';
 
 /**
  * Amadeus API Provider Implementation
@@ -121,13 +121,21 @@ export class AmadeusProvider extends BaseFlightProvider {
    * Build Amadeus-specific query parameters
    */
   private buildSearchParams(params: FlightSearchParams): Record<string, any> {
+    const breakdown = params.passengerBreakdown;
     const searchParams: Record<string, any> = {
       originLocationCode: params.from,
       destinationLocationCode: params.to,
       departureDate: params.departDate,
-      adults: params.passengers,
-      currencyCode: 'USD', // Default, could be extended
+      adults: breakdown ? breakdown.adults : (params.passengers || 1),
+      currencyCode: 'USD',
     };
+
+    if (breakdown?.children) {
+      searchParams.children = breakdown.children;
+    }
+    if (breakdown?.infants) {
+      searchParams.infants = breakdown.infants;
+    }
 
     if (params.tripType === 'round-trip' && params.returnDate) {
       searchParams.returnDate = params.returnDate;
@@ -192,15 +200,20 @@ export class AmadeusProvider extends BaseFlightProvider {
    * }
    */
   protected normalize(rawFlight: any, params: FlightSearchParams): NormalizedFlight {
-    const itinerary = rawFlight.itineraries[0];
-    const firstSegment = itinerary.segments[0];
-    const lastSegment = itinerary.segments[itinerary.segments.length - 1];
+    const outboundItinerary = rawFlight.itineraries[0];
+    const firstSegment = outboundItinerary.segments[0];
+    const lastSegment = outboundItinerary.segments[outboundItinerary.segments.length - 1];
 
     // Calculate duration in minutes
-    const durationStr = itinerary.duration; // Format: PT10H30M
+    const durationStr = outboundItinerary.duration; // Format: PT10H30M
     const durationMinutes = this.parseDiurationISO8601(durationStr);
 
-    const stops = itinerary.segments.length - 1;
+    const stops = outboundItinerary.segments.length - 1;
+
+    // Build detailed itineraries
+    const itineraries: FlightItinerary[] = rawFlight.itineraries.map(
+      (itin: any, idx: number) => this.buildItinerary(itin, idx === 0 ? 'outbound' : 'inbound', params.cabin),
+    );
 
     // Generate deep link for booking (affiliate)
     const bookingUrl = `https://www.kiwi.com/deep?${new URLSearchParams({
@@ -221,7 +234,8 @@ export class AmadeusProvider extends BaseFlightProvider {
       arrivalTime: lastSegment.arrival.at,
       duration: durationMinutes,
       stops: stops,
-      stopDetails: this.buildStopDetails(itinerary.segments),
+      stopDetails: this.buildStopDetails(outboundItinerary.segments),
+      itineraries,
       price: parseFloat(rawFlight.price.grandTotal),
       currency: rawFlight.price.currency,
       bookingUrl: bookingUrl,
@@ -230,6 +244,30 @@ export class AmadeusProvider extends BaseFlightProvider {
       arrivalAirport: params.to,
       departureDate: params.departDate,
       returnDate: params.returnDate,
+    };
+  }
+
+  private buildItinerary(itin: any, direction: 'outbound' | 'inbound', cabin?: string): FlightItinerary {
+    const segments: FlightSegmentDetail[] = itin.segments.map((seg: any) => ({
+      departureAirport: seg.departure.iataCode,
+      departureTerminal: seg.departure.terminal,
+      departureTime: seg.departure.at,
+      arrivalAirport: seg.arrival.iataCode,
+      arrivalTerminal: seg.arrival.terminal,
+      arrivalTime: seg.arrival.at,
+      carrierCode: seg.carrierCode,
+      carrierName: this.getAirlineName(seg.carrierCode),
+      flightNumber: `${seg.carrierCode}${seg.number}`,
+      aircraft: seg.aircraft?.code,
+      duration: this.parseDiurationISO8601(seg.duration || 'PT0M'),
+      cabin: cabin ? this.mapCabin(cabin) : undefined,
+    }));
+
+    return {
+      direction,
+      duration: this.parseDiurationISO8601(itin.duration),
+      segments,
+      stops: itin.segments.length - 1,
     };
   }
 
