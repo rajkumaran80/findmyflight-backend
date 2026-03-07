@@ -20,6 +20,9 @@ async function bootstrap() {
   // Enable CORS for frontend
   const allowedOrigins = [
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:8080',
+    'http://localhost:8081',
     'https://travellyhub.com',
     'https://findmyflight-frontend-prod-fna8gxa2f5hqbch4.uksouth-01.azurewebsites.net',
   ];
@@ -28,10 +31,12 @@ async function bootstrap() {
   }
   app.enableCors({
     origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 8081;
   await app.listen(port);
 
   console.log(`FindMyFlight Backend running on http://localhost:${port}`);
