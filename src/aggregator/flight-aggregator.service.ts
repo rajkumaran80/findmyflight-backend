@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { IFlightProvider } from '../providers/base.provider';
 import { AmadeusProvider } from '../providers/amadeus.provider';
-import { DemoProvider } from '../providers/demo.provider';
-import { KiwiProvider } from '../providers/kiwi.provider';
+// import { DemoProvider } from '../providers/demo.provider';
+// import { KiwiProvider } from '../providers/kiwi.provider';
 import { FlightSearchParams, FlightSearchResult, NormalizedFlight, ProviderStatus } from '../common/types';
 import { rankingEngine } from '../ranking/ranking.engine';
 import { CacheService } from '../cache/cache.service';
@@ -32,17 +32,13 @@ export class FlightAggregatorService {
     console.log('[INIT] AMADEUS_API_SECRET present:', !!amadeusSecret, amadeusSecret ? `(length: ${amadeusSecret.length})` : '');
     console.log('[INIT] KIWI_API_KEY present:', !!kiwiKey);
 
-    // Use demo provider for testing (no real API keys needed)
-    console.log('[INIT] Registering Demo provider for testing...');
-    this.registerProvider(new DemoProvider());
-
-    // Uncomment below to use real Amadeus when keys are available
-    // if (amadeusKey && amadeusSecret) {
-    //   console.log('[INIT] Registering Amadeus provider...');
-    //   this.registerProvider(new AmadeusProvider(amadeusKey, amadeusSecret));
-    // } else {
-    //   console.log('[INIT] ❌ Amadeus keys missing! Key:', !!amadeusKey, 'Secret:', !!amadeusSecret);
-    // }
+    // Amadeus provider
+    if (amadeusKey && amadeusSecret) {
+      console.log('[INIT] Registering Amadeus provider...');
+      this.registerProvider(new AmadeusProvider(amadeusKey, amadeusSecret));
+    } else {
+      console.error('[INIT] AMADEUS_API_KEY and AMADEUS_API_SECRET are required');
+    }
 
     // Kiwi provider temporarily disabled
     // if (kiwiKey) {

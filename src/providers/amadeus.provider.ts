@@ -80,15 +80,17 @@ export class AmadeusProvider extends BaseFlightProvider {
   private async getAccessToken(): Promise<string> {
     try {
       console.log('[AMADEUS] Requesting access token...');
+      const params = new URLSearchParams();
+      params.append('grant_type', 'client_credentials');
+      params.append('client_id', this.apiKey);
+      params.append('client_secret', this.apiSecret || '');
+
       const response = await axios.post(
-        `${this.baseUrl}/auth/oauth2/token`,
-        {
-          grant_type: 'client_credentials',
-          client_id: this.apiKey,
-          client_secret: this.apiSecret,
-        },
+        'https://test.api.amadeus.com/v1/security/oauth2/token',
+        params,
         {
           timeout: 5000,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         },
       );
 
