@@ -8,16 +8,14 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable validation pipes globally
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
       transform: true,
     }),
   );
 
-  // Enable CORS for frontend
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -29,10 +27,11 @@ async function bootstrap() {
   if (process.env.FRONTEND_URL) {
     allowedOrigins.push(process.env.FRONTEND_URL);
   }
+
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-secret'],
     credentials: true,
   });
 
@@ -40,6 +39,7 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`FindMyFlight Backend running on http://localhost:${port}`);
+  console.log(`[QUEUE] Attraction generation worker listening...`);
 }
 
 bootstrap().catch((err) => {

@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Country {
+  code   String  @id // ISO 3166-1 alpha-2 (e.g. "LK", "US")
+  name   String
+  cities City[]
+  states State[]
+
+  @@index([name])
+}
+
+model State {
+  id          String @id @default(uuid())
+  name        String
+  code        String // e.g. "TN", "KA", "KL"
+  countryCode String
+  country     Country @relation(fields: [countryCode], references: [code], onDelete: Cascade)
+  cities      City[]
+
+  @@unique([code, countryCode])
+  @@index([countryCode])
+}
+
+model City {
+  id          String  @id @default(uuid())
+  name        String
+  countryCode String
+  stateId     String?
+  latitude    Float?
+  longitude   Float?
+  country     Country @relation(fields: [countryCode], references: [code], onDelete: Cascade)
+  state       State?  @relation(fields: [stateId], references: [id], onDelete: SetNull)
+
+  @@unique([name, countryCode])
+  @@index([countryCode])
+  @@index([stateId])
+}
+
+model Attraction {
+  id              String           @id @default(uuid())
+  countryCode     String
+  city            String
+  name            String
+  slug            String           @unique
+  latitude        Float?
+  longitude       Float?
+  status          AttractionStatus @default(PENDING)
+  seoTitle        String?
+  metaDescription String?
+  contentHtml     String?          @db.Text
+  bestTimeToVisit String?
+  entryFee        String?
+  errorMessage    String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  photos          Photo[]
+
+  @@index([status])
+  @@index([countryCode, city])
+}
+
+enum AttractionStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+model Photo {
+  id           String     @id @default(uuid())
+  attractionId String
+  imageUrl     String
+  altText      String
+  source       String?
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  @@index([attractionId])
+}
+
+model AffiliateConfig {
+  id        String        @id @default(uuid())
+  type      AffiliateType
+  baseUrl   String
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum AffiliateType {
+  FLIGHT
+  HOTEL
+  TOURS
+}
