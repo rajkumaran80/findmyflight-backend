@@ -37,8 +37,12 @@ jobs:
           cp -r prisma deploy/
           cp package.json deploy/
           cp package-lock.json deploy/
+          
           cd deploy
           npm ci --omit=dev
+          
+          # This command will now place the files directly into @prisma/client
+          # because of the 'output' change in your schema.prisma
           npx prisma generate
 
       - name: Upload artifact for deployment job
