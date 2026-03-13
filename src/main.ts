@@ -35,8 +35,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT || 8081;
-  await app.listen(port);
+  const port = process.env.PORT;
+  await app.listen(port!);
 
   console.log(`FindMyFlight Backend running on http://localhost:${port}`);
   console.log(`[QUEUE] Attraction generation worker listening...`);
