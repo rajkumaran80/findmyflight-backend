@@ -32,20 +32,13 @@ jobs:
 
       - name: Prepare deployment package
         run: |
-          # Create a clean deployment directory
           mkdir deploy
-          
-          # Copy source/config files
           cp -r dist deploy/
           cp -r prisma deploy/
           cp package.json deploy/
           cp package-lock.json deploy/
-          
-          # Install only production dependencies inside the deploy folder
           cd deploy
           npm ci --omit=dev
-          
-          # Re-generate the Prisma client inside the production node_modules
           npx prisma generate
 
       - name: Upload artifact for deployment job
@@ -66,6 +59,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: . # Ensure it extracts to current directory, not a subfolder
 
       - name: Login to Azure
         uses: azure/login@v2
