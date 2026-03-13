@@ -4,7 +4,7 @@
   "description": "Flight comparison aggregator backend",
   "main": "dist/main.js",
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
