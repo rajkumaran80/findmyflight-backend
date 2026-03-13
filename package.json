@@ -6,8 +6,8 @@
   "scripts": {
     "postinstall": "npx prisma generate",
     "build": "nest build",
-    "start": "node dist/main.js",
-    "start:prod": "node dist/main.js",
+    "start": "node node_modules/prisma/build/index.js generate && node dist/main.js",
+    "start:prod": "node node_modules/prisma/build/index.js generate && node dist/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
