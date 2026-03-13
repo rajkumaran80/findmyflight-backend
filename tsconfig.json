@@ -16,9 +16,11 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": "./src",
+    /* --- Path Mapping Changes Below --- */
+    "baseUrl": "./",                       // Change from ./src to ./ so we can reach node_modules
     "paths": {
-      "@/*": ["*"]
+      "prisma-client": ["node_modules/prisma-client"], // Map your custom client
+      "@/*": ["src/*"]                     // Adjusted to work with the new baseUrl
     }
   },
   "include": ["src/**/*"],
