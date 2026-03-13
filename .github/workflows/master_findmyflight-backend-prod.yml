@@ -79,3 +79,5 @@ jobs:
           app-name: 'findmyflight-backend-prod'
           slot-name: 'Production'
           package: .
+
+          
