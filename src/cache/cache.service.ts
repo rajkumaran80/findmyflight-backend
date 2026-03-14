@@ -23,12 +23,14 @@ export class CacheService {
    */
   private async initializeRedis(): Promise<void> {
     try {
-      const redisPort = parseInt(process.env.REDIS_PORT || '6379');
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const parsed = new URL(redisUrl);
+      const port = parseInt(parsed.port || '6379', 10);
       this.redisClient = createClient({
         socket: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: redisPort,
-          tls: redisPort === 6380 || redisPort === 10000,
+          host: parsed.hostname,
+          port,
+          tls: parsed.protocol === 'rediss:',
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               console.error('Redis: Max reconnection retries exceeded');
@@ -37,7 +39,7 @@ export class CacheService {
             return Math.min(retries * 50, 500);
           },
         },
-        password: process.env.REDIS_PASSWORD,
+        password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
       });
 
       await this.redisClient.connect();
