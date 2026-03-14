@@ -24,7 +24,11 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B5E07074C198457495E113501B68EB9D }}
 
       - name: Login to Azure Container Registry
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Docker image
         run: |
