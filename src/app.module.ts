@@ -1,6 +1,7 @@
 import { Module, Controller, Get } from '@nestjs/common';
 import { FlightsModule } from './flights/flights.module';
 import { AttractionsModule } from './attractions/attractions.module';
+import { AirportsModule } from './airports/airports.module';
 import { QueueModule } from './queue/queue.module';
 import { ContentGeneratorModule } from './content/content-generator.module';
 import { ImageModule } from './images/image.module';
@@ -18,6 +19,7 @@ class HealthController {
   imports: [
     FlightsModule,
     AttractionsModule,
+    AirportsModule,
     QueueModule,
     ContentGeneratorModule,
     ImageModule,

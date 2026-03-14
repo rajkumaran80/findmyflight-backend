@@ -88,6 +88,21 @@ model Photo {
   @@index([attractionId])
 }
 
+model Airport {
+  id          String  @id @default(uuid())
+  iataCode    String  @unique
+  icaoCode    String?
+  name        String
+  city        String
+  countryCode String
+  type        String?
+  latitude    Float?
+  longitude   Float?
+  keywords    String?
+
+  @@index([countryCode])
+}
+
 model AffiliateConfig {
   id        String        @id @default(uuid())
   type      AffiliateType
