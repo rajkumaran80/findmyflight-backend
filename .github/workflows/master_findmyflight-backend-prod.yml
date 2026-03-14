@@ -44,3 +44,5 @@ jobs:
           app-name: 'findmyflight-backend-prod'
           slot-name: 'Production'
           images: '${{ secrets.ACR_NAME }}.azurecr.io/findmyflight-backend:${{ github.sha }}'
+
+          
