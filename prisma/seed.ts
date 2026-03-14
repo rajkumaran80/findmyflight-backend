@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../node_modules/prisma-client';
 
 const prisma = new PrismaClient();
 
@@ -68,6 +68,12 @@ const COUNTRIES = [
   { code: 'UZ', name: 'Uzbekistan' }, { code: 'VU', name: 'Vanuatu' }, { code: 'VA', name: 'Vatican City' },
   { code: 'VE', name: 'Venezuela' }, { code: 'VN', name: 'Vietnam' }, { code: 'YE', name: 'Yemen' },
   { code: 'ZM', name: 'Zambia' }, { code: 'ZW', name: 'Zimbabwe' },
+  // Territories & special regions
+  { code: 'HK', name: 'Hong Kong' },
+  { code: 'MO', name: 'Macao' },
+  { code: 'XK', name: 'Kosovo' },
+  { code: 'PR', name: 'Puerto Rico' },
+  { code: 'PF', name: 'French Polynesia' },
 ];
 
 // Cities per country: [name, lat, lng]
@@ -266,6 +272,11 @@ const CITIES_BY_COUNTRY: Record<string, [string, number, number][]> = {
   YE: [["Sana'a", 15.3694, 44.1910], ['Aden', 12.7794, 45.0367], ['Taizz', 13.5789, 44.0218]],
   ZM: [['Lusaka', -15.4166, 28.2833], ['Livingstone', -17.8537, 25.8526], ['Ndola', -12.9587, 28.6366], ['Kafue', -15.7714, 28.1892]],
   ZW: [['Harare', -17.8292, 31.0522], ['Bulawayo', -20.1325, 28.6264], ['Victoria Falls', -17.9243, 25.8567], ['Great Zimbabwe', -20.2669, 30.9338]],
+  HK: [['Hong Kong', 22.3193, 114.1694], ['Kowloon', 22.3182, 114.1718], ['Lantau Island', 22.2627, 113.9456]],
+  MO: [['Macau', 22.1987, 113.5439], ['Taipa', 22.1600, 113.5600], ['Cotai', 22.1528, 113.5681]],
+  XK: [['Pristina', 42.6629, 21.1655], ['Prizren', 42.2139, 20.7394], ['Peja', 42.6600, 20.2889]],
+  PR: [['San Juan', 18.4655, -66.1057], ['Ponce', 18.0111, -66.6141], ['Mayagüez', 18.2013, -67.1397]],
+  PF: [['Papeete', -17.5334, -149.5667], ['Bora Bora', -16.5004, -151.7415], ['Moorea', -17.5335, -149.8304]],
 };
 
 async function main() {
