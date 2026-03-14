@@ -6,6 +6,7 @@ import { QueueModule } from './queue/queue.module';
 import { ContentGeneratorModule } from './content/content-generator.module';
 import { ImageModule } from './images/image.module';
 import { RevalidationModule } from './revalidation/revalidation.module';
+import { SeedModule } from './seed/seed.module';
 
 @Controller('api')
 class HealthController {
@@ -24,6 +25,7 @@ class HealthController {
     ContentGeneratorModule,
     ImageModule,
     RevalidationModule,
+    SeedModule,
   ],
   controllers: [HealthController],
 })

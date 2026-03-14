@@ -57,4 +57,16 @@ echo "==> Seeding countries and cities..."
 npx ts-node --project tsconfig.json prisma/seed.ts
 
 echo ""
+echo "==> Seeding airports..."
+npx ts-node --project tsconfig.json scripts/seed-airports.ts
+
+echo ""
+echo "==> Importing attractions..."
+if [[ -f "$ROOT/attractions.json" ]]; then
+  npx ts-node --project tsconfig.json scripts/import-attractions.ts
+else
+  echo "attractions.json not found — skipping"
+fi
+
+echo ""
 echo "Done. Seed complete."

@@ -16,6 +16,12 @@ function findCsv(): string {
   throw new Error('airports.csv not found. Tried:\n' + candidates.join('\n'));
 }
 
+// Resolve pre-filtered JSON (used in Docker / CI where CSV is unavailable)
+function findJson(): string | null {
+  const p = path.join(__dirname, 'data/airports.json');
+  return fs.existsSync(p) ? p : null;
+}
+
 function parseLine(line: string): string[] {
   const fields: string[] = [];
   let i = 0;
@@ -38,47 +44,54 @@ function parseLine(line: string): string[] {
 }
 
 async function main() {
-  const csvPath = findCsv();
-  console.log(`Reading CSV from: ${csvPath}`);
-
-  const csv = fs.readFileSync(csvPath, 'utf-8');
-  const lines = csv.split('\n').slice(1); // skip header
-
-  const seen = new Set<string>();
-  const airports: {
+  type AirportRow = {
     iataCode: string; icaoCode?: string; name: string; city: string;
     countryCode: string; type?: string; latitude?: number; longitude?: number; keywords?: string;
-  }[] = [];
+  };
 
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    try {
-      const f = parseLine(line);
-      const iataCode = f[13]?.trim();
-      if (!iataCode || iataCode.length !== 3 || seen.has(iataCode)) continue;
+  let airports: AirportRow[] = [];
 
-      const type = f[2]?.trim();
-      // Only keep large and medium airports to keep the table lean (~4,000 rows)
-      if (type !== 'large_airport' && type !== 'medium_airport') continue;
+  const jsonPath = findJson();
+  if (jsonPath) {
+    console.log(`Reading pre-filtered airports from: ${jsonPath}`);
+    airports = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+  } else {
+    const csvPath = findCsv();
+    console.log(`Reading CSV from: ${csvPath}`);
 
-      airports.push({
-        iataCode: iataCode.toUpperCase(),
-        icaoCode: f[12]?.trim() || undefined,
-        name: f[3]?.trim() || iataCode,
-        city: f[10]?.trim() || '',
-        countryCode: f[8]?.trim() || '',
-        type,
-        latitude: f[4] ? parseFloat(f[4]) : undefined,
-        longitude: f[5] ? parseFloat(f[5]) : undefined,
-        keywords: f[18]?.trim() || undefined,
-      });
-      seen.add(iataCode);
-    } catch {
-      continue;
+    const csv = fs.readFileSync(csvPath, 'utf-8');
+    const lines = csv.split('\n').slice(1); // skip header
+    const seen = new Set<string>();
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const f = parseLine(line);
+        const iataCode = f[13]?.trim();
+        if (!iataCode || iataCode.length !== 3 || seen.has(iataCode)) continue;
+
+        const type = f[2]?.trim();
+        if (type !== 'large_airport' && type !== 'medium_airport') continue;
+
+        airports.push({
+          iataCode: iataCode.toUpperCase(),
+          icaoCode: f[12]?.trim() || undefined,
+          name: f[3]?.trim() || iataCode,
+          city: f[10]?.trim() || '',
+          countryCode: f[8]?.trim() || '',
+          type,
+          latitude: f[4] ? parseFloat(f[4]) : undefined,
+          longitude: f[5] ? parseFloat(f[5]) : undefined,
+          keywords: f[18]?.trim() || undefined,
+        });
+        seen.add(iataCode);
+      } catch {
+        continue;
+      }
     }
   }
 
-  console.log(`Parsed ${airports.length} airports (large + medium with IATA codes)`);
+  console.log(`Loaded ${airports.length} airports (large + medium with IATA codes)`);
 
   let inserted = 0, skipped = 0;
   for (const airport of airports) {

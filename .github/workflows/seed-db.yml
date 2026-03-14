@@ -1,0 +1,19 @@
+name: Seed database
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend URL'
+        required: true
+        default: 'https://findmyflight-backend-prod.azurewebsites.net'
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger seed endpoint
+        run: |
+          curl -f -X POST "${{ github.event.inputs.backend_url }}/api/admin/seed" \
+            -H "x-api-secret: ${{ secrets.API_SECRET }}" \
+            -H "Content-Type: application/json"
