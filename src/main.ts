@@ -20,7 +20,6 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:8080',
-    'http://localhost:8081',
     'https://travellyhub.com',
     'https://findmyflight-frontend-prod-fna8gxa2f5hqbch4.uksouth-01.azurewebsites.net',
   ];
