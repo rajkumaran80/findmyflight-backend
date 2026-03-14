@@ -1,0 +1,156 @@
+# =============================================================
+# FINDMYFLIGHT BACKEND - DEPLOYMENT GUIDE
+# Last updated: 2026-03-14
+# =============================================================
+
+# =============================================================
+# ARCHITECTURE OVERVIEW
+# =============================================================
+# - Runtime:      Node.js 22 (Debian slim)
+# - Framework:    NestJS
+# - Database:     PostgreSQL via Prisma ORM
+# - Queue:        BullMQ backed by Redis
+# - Deployment:   Docker image → Azure Container Registry → Azure App Service
+# - CI/CD:        GitHub Actions (push to master triggers build + deploy)
+
+# =============================================================
+# DOCKERFILE DECISIONS
+# =============================================================
+# Base image: node:22-slim (Debian, NOT Alpine)
+#   WHY: Prisma query engine requires libssl.so.1.1
+#        Alpine 3.17+ only ships OpenSSL 3.x → Prisma crashes with
+#        "Error loading shared library libssl.so.1.1"
+#        Debian slim has OpenSSL 1.1 available via apt.
+#
+# OpenSSL install:
+#   RUN apt-get update && apt-get install -y openssl
+#   WHY: Required by Prisma client at runtime.
+#
+# Multi-stage build:
+#   Stage 1 (builder): Installs all deps, generates Prisma client, builds TypeScript
+#   Stage 2 (production): Only prod deps + generated Prisma client + compiled dist/
+#   WHY: Keeps final image small (no devDependencies, no TypeScript compiler)
+#
+# Port: 8080
+#   WHY: Azure App Service default port for custom containers.
+#        Must match PORT env var.
+#
+# CMD: ["node", "dist/main.js"]
+#   WHY: Direct node execution, not npm start, avoids extra process overhead.
+#
+# Prisma generate runs in BOTH stages:
+#   WHY: Builder needs it to compile. Production stage needs the binary for runtime.
+
+# =============================================================
+# GITHUB ACTIONS WORKFLOW DECISIONS
+# =============================================================
+# File: .github/workflows/master_findmyflight-backend-prod.yml
+#
+# Trigger: push to master + workflow_dispatch (manual)
+#
+# Auth to Azure:
+#   Uses OIDC (azure/login@v2) with service principal secrets:
+#   - AZUREAPPSERVICE_CLIENTID_*
+#   - AZUREAPPSERVICE_TENANTID_*
+#   - AZUREAPPSERVICE_SUBSCRIPTIONID_*
+#
+# Auth to ACR:
+#   Uses docker/login-action@v3 with ACR admin credentials:
+#   - ACR_NAME (= findmyflightacr)
+#   - ACR_USERNAME (= findmyflightacr)
+#   - ACR_PASSWORD (from ACR Access Keys page in Azure Portal)
+#   WHY: Service principal didn't have ACR push permissions.
+#        Admin credentials are simpler and reliable.
+#
+# Image tagging:
+#   Tags image with both github.sha (specific) and :latest
+#   Deploy uses github.sha tag for exact version traceability.
+#
+# Deploy action: azure/webapps-deploy@v3
+#   app-name: findmyflight-backend-prod
+#   slot: Production
+#   images: findmyflightacr.azurecr.io/findmyflight-backend:<sha>
+
+# =============================================================
+# AZURE APP SERVICE CONFIGURATION
+# =============================================================
+# App name:       findmyflight-backend-prod
+# Resource group: rg-findmyflight-prod
+# Region:         UK South
+# Plan:           Linux container
+#
+# ACR pull credentials (set as App Settings):
+#   DOCKER_REGISTRY_SERVER_URL      = https://findmyflightacr.azurecr.io
+#   DOCKER_REGISTRY_SERVER_USERNAME = findmyflightacr
+#   DOCKER_REGISTRY_SERVER_PASSWORD = <ACR admin password>
+#   WHY: Azure App Service needs these to pull private ACR images.
+#
+# Health check path: /api/health
+#   Endpoint defined in AppModule (HealthController).
+#   Azure pings this every 60s to determine if the container is healthy.
+#
+# Container start time limit: 600s (WEBSITE_CONTAINER_START_TIME_LIMIT)
+#   WHY: Default is 230s. NestJS + Prisma startup can be slow on cold start.
+
+# =============================================================
+# DATABASE (PRISMA) DECISIONS
+# =============================================================
+# ORM: Prisma 5.x
+# Database: PostgreSQL (Azure Flexible Server)
+#   Host: findmyflight-db.postgres.database.azure.com
+#   DB:   attractions
+#   User: findmyflightadmin
+#
+# Migrations:
+#   Run manually: npx prisma migrate deploy
+#   NOT run automatically on startup (app does not run migrations at boot).
+#   Run from local machine with DATABASE_URL pointing to prod DB.
+#
+# Prisma generate:
+#   Run in Dockerfile (both stages) during image build.
+#   The postinstall script in package.json also runs it on npm install.
+#
+# Firewall:
+#   PostgreSQL has a firewall rule "AllowAzureServices" (0.0.0.0 → 0.0.0.0)
+#   allowing all Azure services to connect.
+#   Developer IP must be added separately for local access.
+
+# =============================================================
+# REDIS DECISIONS
+# =============================================================
+# Azure Cache for Redis (retirement: Sept 2028, consider migration before then)
+#   Host: findmyflight-redis.redis.cache.windows.net (port 6380, SSL)
+#   Host: findmyflight-redis.uksouth.redis.azure.net (port 10000, SSL)
+#
+# Two Redis clients in the app:
+#   1. BullMQ (queue.service.ts, queue.worker.ts) — uses REDIS_URL
+#      Protocol must be rediss:// for TLS. parseRedisUrl() detects rediss:// and adds tls:{}.
+#   2. CacheService (cache.service.ts) — uses REDIS_HOST/REDIS_PORT/REDIS_PASSWORD
+#      TLS enabled when port is 6380 or 10000.
+#
+# CACHE_ENABLED=false currently (Redis cache disabled, queue still uses Redis).
+
+# =============================================================
+# HOW TO DEPLOY MANUALLY
+# =============================================================
+# 1. Push to master → GitHub Actions triggers automatically
+# 2. OR: workflow_dispatch from GitHub Actions tab
+#
+# To force restart without code change:
+#   az webapp restart --name findmyflight-backend-prod --resource-group rg-findmyflight-prod
+#
+# To watch live logs:
+#   az webapp log tail --name findmyflight-backend-prod --resource-group rg-findmyflight-prod
+#
+# To run Prisma migrations against prod:
+#   DATABASE_URL='postgresql://findmyflightadmin:FindMyFlight2026@findmyflight-db.postgres.database.azure.com:5432/attractions?sslmode=require' npx prisma migrate deploy
+
+# =============================================================
+# KNOWN ISSUES RESOLVED
+# =============================================================
+# 1. libssl.so.1.1 missing     → Switched from node:22-alpine to node:22-slim
+# 2. ImagePullUnauthorized     → Added DOCKER_REGISTRY_SERVER_* app settings
+# 3. P1001 (can't reach DB)    → Added PostgreSQL firewall rule AllowAzureServices
+# 4. P1000 (auth failed)       → Fixed DATABASE_URL password (removed backslash escape)
+# 5. Redis ETIMEDOUT           → Added TLS support in parseRedisUrl() for rediss://
+# 6. Startup timeout (230s)    → Switched from zip deploy to Docker deployment
