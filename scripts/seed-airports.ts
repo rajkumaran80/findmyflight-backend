@@ -57,7 +57,7 @@ async function main() {
       const iataCode = f[13]?.trim();
       if (!iataCode || iataCode.length !== 3 || seen.has(iataCode)) continue;
 
-      const type = f[1]?.trim();
+      const type = f[2]?.trim();
       // Only keep large and medium airports to keep the table lean (~4,000 rows)
       if (type !== 'large_airport' && type !== 'medium_airport') continue;
 
