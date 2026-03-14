@@ -49,13 +49,15 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private parseRedisUrl(url: string): { host: string; port: number; password?: string } {
+  private parseRedisUrl(url: string): { host: string; port: number; password?: string; tls?: object } {
     try {
       const parsed = new URL(url);
+      const tls = parsed.protocol === 'rediss:' ? {} : undefined;
       return {
         host: parsed.hostname || 'localhost',
         port: parseInt(parsed.port || '6379', 10),
         password: parsed.password || undefined,
+        ...(tls && { tls }),
       };
     } catch {
       return { host: 'localhost', port: 6379 };

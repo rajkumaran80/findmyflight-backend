@@ -28,7 +28,7 @@ export class CacheService {
         socket: {
           host: process.env.REDIS_HOST || 'localhost',
           port: redisPort,
-          tls: redisPort === 6380,
+          tls: redisPort === 6380 || redisPort === 10000,
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               console.error('Redis: Max reconnection retries exceeded');
