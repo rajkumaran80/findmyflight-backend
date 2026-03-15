@@ -61,6 +61,46 @@ export class AirportsService {
     return results;
   }
 
+  async findNearest(lat: number, lng: number, limit = 1) {
+    const airports = await this.prisma.airport.findMany({
+      where: { latitude: { not: null }, longitude: { not: null } },
+      select: { iataCode: true, name: true, city: true, countryCode: true, latitude: true, longitude: true },
+    });
+
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    return airports
+      .map((a) => ({ ...a, distance: haversine(lat, lng, a.latitude!, a.longitude!) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit)
+      .map(({ iataCode, name, city, countryCode, distance }) => ({
+        code: iataCode,
+        name,
+        city,
+        country: countryCode,
+        distanceKm: Math.round(distance),
+      }));
+  }
+
+  async findNearestByCity(city: string, countryCode: string): Promise<string | null> {
+    const byCity = await this.prisma.airport.findFirst({
+      where: { city: { equals: city, mode: 'insensitive' }, countryCode: countryCode.toUpperCase() },
+      orderBy: { type: 'asc' },
+    });
+    if (byCity) return byCity.iataCode;
+
+    const byCountry = await this.prisma.airport.findFirst({
+      where: { countryCode: countryCode.toUpperCase(), type: 'large_airport' },
+    });
+    return byCountry?.iataCode ?? null;
+  }
+
   async findByCode(code: string) {
     const airport = await this.prisma.airport.findUnique({
       where: { iataCode: code.toUpperCase() },

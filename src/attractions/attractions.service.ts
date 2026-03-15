@@ -109,6 +109,14 @@ export class AttractionsService {
       where: { code: attraction.countryCode },
     });
 
+    // Nearest airport to the attraction's city
+    const nearestAirport = await this.prisma.airport.findFirst({
+      where: { city: { equals: attraction.city, mode: 'insensitive' }, countryCode: attraction.countryCode },
+      orderBy: { type: 'asc' },
+    }) ?? await this.prisma.airport.findFirst({
+      where: { countryCode: attraction.countryCode, type: 'large_airport' },
+    });
+
     // Fetch nearby attractions (same city first, then same country)
     const nearby = await this.prisma.attraction.findMany({
       where: {
@@ -144,6 +152,7 @@ export class AttractionsService {
       entryFee: attraction.entryFee,
       photos: attraction.photos,
       nearbyAttractions: nearby,
+      nearestAirportCode: nearestAirport?.iataCode ?? null,
       updatedAt: attraction.updatedAt,
     };
   }
