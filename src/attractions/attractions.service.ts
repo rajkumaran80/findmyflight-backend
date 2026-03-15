@@ -153,6 +153,8 @@ export class AttractionsService {
       photos: attraction.photos,
       nearbyAttractions: nearby,
       nearestAirportCode: nearestAirport?.iataCode ?? null,
+      latitude: attraction.latitude,
+      longitude: attraction.longitude,
       updatedAt: attraction.updatedAt,
     };
   }
